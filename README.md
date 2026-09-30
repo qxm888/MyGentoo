@@ -46,11 +46,28 @@
 
 ## 同步 / 恢复
 
+### 一键同步（推荐）
+
 ```bash
-# 把本机当前配置同步进仓库（保存）
-bash scripts/save.sh            # 加 -n 只看差异
-# 从仓库恢复到本机
-bash scripts/restore.sh
+bash scripts/sync.sh                  # 同步 → 隐私扫描 → 提交 → 推送到所有远程
+bash scripts/sync.sh -n               # 预览，不改文件、不提交、不推送
+bash scripts/sync.sh -m "改了键位"     # 自定义提交说明
+bash scripts/sync.sh --no-push        # 只提交，不推送
+```
+
+流程：`rsync` 同步家目录配置 → 同步 `/etc` 系统配置（需要 root，会弹一次密码框）
+→ **隐私/密钥扫描**（命中密码 / token / 私钥 / 公网 IP / 手机号就中止）
+→ `git commit` → 推送到所有已配置的远程（目前：Gitee + GitHub）。
+
+- 误报可写进仓库根目录的 `.secretscan-ignore`（每行一个 `grep -E` 正则）。
+- 源家目录默认从仓库位置推导（`<home>/opencode/<repo>` → `<home>`），
+  所以就算在 Gentoo 上跑 Arch 仓库的脚本，也不会把两边的配置搞混；可用 `-H` 覆盖。
+
+### 分开执行（只想同步/只想恢复）
+
+```bash
+bash scripts/save.sh            # 本机 → 仓库（加 -n 只看差异）
+bash scripts/restore.sh         # 仓库 → 本机（覆盖前自动备份 .bak-时间戳）
 ```
 
 `save.sh` 的家目录部分不需要 root；`etc/` 与 `systemd` 的系统部分会用 `sudo`（或 `pkexec` 弹窗）执行。
