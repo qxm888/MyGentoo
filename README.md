@@ -72,6 +72,26 @@ bash scripts/restore.sh         # 仓库 → 本机（覆盖前自动备份 .bak
 
 `save.sh` 的家目录部分不需要 root；`etc/` 与 `systemd` 的系统部分会用 `sudo`（或 `pkexec` 弹窗）执行。
 
+### 提交前自动扫描（公开仓库防手滑）
+
+仓库自带 `.githooks/pre-commit`：每次 `git commit` 都会先扫描**暂存区内容**，
+命中密码 / token / 私钥 / 公网 IP / 手机号就**阻断提交**。
+新克隆一份后启用一次即可（`scripts/sync.sh` 会自动帮你设置）：
+
+```bash
+git config core.hooksPath .githooks
+```
+
+确认真无害时可临时绕过：`git commit --no-verify`。
+单独手动扫描：`bash scripts/secretscan.sh`（`--staged` 只扫暂存区、`--quiet` 只在命中时输出）。
+
+## 关于公开
+
+本仓库**刻意保持公开**，方便别人直接拿去参考 / 复用（同机双系统的另一份在 Arch 侧）。
+所以：密码、token、私钥、服务器地址这类东西一律不进来 ——
+`~/.config/opencode/service.json`、`/etc/portage/gnupg/`、`/etc/frp/frpc.toml`、
+`/etc/ssh/sshd_config`、`~/.ssh/` 全部排除在版本管理之外（见下表）。
+
 ## ⚠️ 未纳入仓库的敏感文件（请单独备份）
 
 | 路径 | 原因 |

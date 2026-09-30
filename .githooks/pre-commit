@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# pre-commit 钩子 —— 提交前自动跑隐私/密钥扫描，命中就阻断提交。
+# 这是公开仓库的"防手滑"保险：别让密码、token、私钥混进 GitHub/Gitee。
+#
+# 启用（每个 clone 需执行一次，或由 scripts/sync.sh 自动设置）：
+#     git config core.hooksPath .githooks
+#
+# 确认某次提交确实无害时可临时绕过：
+#     git commit --no-verify
+
+ROOT="$(git rev-parse --show-toplevel)"
+exec "$ROOT/scripts/secretscan.sh" --staged --quiet

@@ -57,7 +57,7 @@ say "布局=${LAYOUT}  源家目录=${SRC_HOME}  仓库=${REPO}  主机=$(hostna
 [[ $DRY -eq 1 ]] && warn "DRY-RUN：只预览，不改文件、不提交、不推送"
 
 # 仓库自带工具，绝不能被 --delete 干掉
-KEEP_TOOLS=(--exclude=sync.sh --exclude=save.sh --exclude=restore.sh --exclude=auto-snapshots.sh)
+KEEP_TOOLS=(--exclude=sync.sh --exclude=save.sh --exclude=restore.sh --exclude=auto-snapshots.sh --exclude=secretscan.sh)
 RSYNC_OPTS=(-a --delete --exclude='*.bak*' --exclude='*.bak.*' "${KEEP_TOOLS[@]}")
 [[ $DRY -eq 1 ]] && RSYNC_OPTS+=(--dry-run -i)
 CP_OPTS=(-a)          # dry-run 时根本不走复制分支，见 sync_file
@@ -134,48 +134,19 @@ EOS
 fi
 
 say "===== 3/4 隐私与密钥扫描 ====="
-SCAN=$(mktemp)
-scan_grep() {
-    grep -rInEi --exclude-dir=.git --exclude='kernel-config-*' --exclude='linux-firmware-*' \
-         --exclude='.secretscan-ignore' -e "$1" "$REPO" 2>/dev/null >> "$SCAN" || true
-}
-scan_grep 'BEGIN [A-Z ]*PRIVATE KEY'
-scan_grep 'sk-[A-Za-z0-9]{16,}'
-scan_grep 'ghp_[A-Za-z0-9]{20,}'
-scan_grep 'gho_[A-Za-z0-9]{20,}'
-scan_grep 'glpat-[A-Za-z0-9_-]{10,}'
-scan_grep 'AKIA[0-9A-Z]{16}'
-scan_grep 'xox[bapr]-[A-Za-z0-9-]{10,}'
-scan_grep '(password|passwd|passphrase|secret|token|api[_-]?key|access[_-]?key)[[:space:]]*[:=][[:space:]]*[^[:space:]]{4,}'
-scan_grep '1[3-9][0-9]{9}'
-grep -rInE --exclude-dir=.git --exclude='kernel-config-*' --exclude='linux-firmware-*' \
-     -e '\b([0-9]{1,3}\.){3}[0-9]{1,3}([^0-9.]|$)' "$REPO" 2>/dev/null \
-  | grep -vE '\b(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|0\.0\.0\.0|255\.|169\.254\.)' >> "$SCAN" || true
-
-IGNORE="$REPO/.secretscan-ignore"
-if [[ -f "$IGNORE" ]]; then
-    while IFS= read -r line; do
-        [[ -z "$line" || "$line" == \#* ]] && continue
-        grep -vE "$line" "$SCAN" > "$SCAN.tmp" 2>/dev/null; mv "$SCAN.tmp" "$SCAN"
-    done < "$IGNORE"
+bash "$REPO/scripts/secretscan.sh" "$REPO"
+SCAN_RC=$?
+if [[ $SCAN_RC -eq 2 && $ALLOW -eq 1 ]]; then
+    warn "--allow-secrets 已指定，继续（命中内容见上）"
+elif [[ $SCAN_RC -ne 0 ]]; then
+    err "已中止（未提交、未推送）。处理：改文件 / 把误报写进 .secretscan-ignore / 加 --allow-secrets"
+    exit 2
 fi
-sort -u "$SCAN" -o "$SCAN"
-
-if [[ -s "$SCAN" ]]; then
-    err "扫描命中 $(wc -l < "$SCAN") 行，请人工确认："
-    sed "s|$REPO/||" "$SCAN" | head -40 | sed 's/^/    /'
-    if [[ $ALLOW -eq 0 ]]; then
-        err "已中止（未提交、未推送）。处理：改文件 / 把误报写进 .secretscan-ignore / 加 --allow-secrets"
-        rm -f "$SCAN"; exit 2
-    fi
-    warn "--allow-secrets 已指定，继续"
-else
-    ok "未发现 密码 / token / 私钥 / 公网 IP / 手机号"
-fi
-rm -f "$SCAN"
 
 say "===== 4/4 提交并推送 ====="
 cd "$REPO"
+# 确保 pre-commit 隐私扫描钩子生效（公开仓库防手滑）
+[[ -d "$REPO/.githooks" ]] && git config core.hooksPath .githooks
 if [[ -z "$(git status --porcelain)" ]]; then
     ok "工作区干净，没有变化"
 else
