@@ -45,10 +45,52 @@ while [[ $# -gt 0 ]]; do
         --status) MODE=status; shift ;;
         -n|--dry-run) DRY=1; shift ;;
         --kernel) WANT_KV="${2:-}"; shift 2 ;;
-        -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+        --install-autosync) MODE=install-autosync; shift ;;
+        --uninstall-autosync) MODE=uninstall-autosync; shift ;;
+        -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
         *) die "未知参数: $1（-h 看帮助）" ;;
     esac
 done
+
+# ---------- 自动触发（systemd path 单元）----------
+SYNC_FILE=/usr/local/sbin/grub-gentoo-sync.sh
+install_autosync() {
+    install -D -m 755 -o root -g root "$SELF" "$SYNC_FILE"
+    ok "已安装 root 属主副本 $SYNC_FILE（避免 systemd 以 root 执行用户可写的脚本）"
+    cat > /etc/systemd/system/gentoo-grub-sync.service <<'EOF'
+[Unit]
+Description=Gentoo 内核变化后同步 Arch 的 GRUB 菜单项
+After=local-fs.target
+ConditionPathExists=/usr/local/sbin/grub-gentoo-sync.sh
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/grub-gentoo-sync.sh
+Nice=10
+IOSchedulingClass=idle
+EOF
+    cat > /etc/systemd/system/gentoo-grub-sync.path <<'EOF'
+[Unit]
+Description=监听 /boot 变化，自动同步 Arch 的 GRUB 菜单项
+
+[Path]
+PathChanged=/boot
+Unit=gentoo-grub-sync.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable --now gentoo-grub-sync.path
+    ok "已启用 gentoo-grub-sync.path（/boot 一有变化就自动同步 GRUB）"
+    systemctl --no-pager --full status gentoo-grub-sync.path | sed -n '1,6p' | sed 's/^/    /'
+}
+uninstall_autosync() {
+    systemctl disable --now gentoo-grub-sync.path 2>/dev/null || true
+    rm -f /etc/systemd/system/gentoo-grub-sync.path /etc/systemd/system/gentoo-grub-sync.service "$SYNC_FILE"
+    systemctl daemon-reload
+    ok "已卸载自动同步（grub-gentoo-sync.sh 本身仍可手动运行）"
+}
 
 # ---------- 提权 ----------
 SELF="$(readlink -f "$0")"
@@ -57,6 +99,12 @@ if [[ $EUID -ne 0 ]]; then
     elif sudo -n true 2>/dev/null; then exec sudo bash "$SELF" "${ARGS[@]}"
     else exec pkexec bash "$SELF" "${ARGS[@]}"; fi
 fi
+
+# ---------- 自动同步的安装/卸载（不需要探测内核）----------
+case "$MODE" in
+    install-autosync)   say "安装自动触发"; install_autosync; exit 0 ;;
+    uninstall-autosync) say "卸载自动触发"; uninstall_autosync; exit 0 ;;
+esac
 
 # ---------- 环境检查 ----------
 if ! mountpoint -q "$TOP"; then
