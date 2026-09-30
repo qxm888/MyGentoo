@@ -1,0 +1,27 @@
+# ===== 敏感 / 运行时（务必不要提交）=====
+# opencode 服务端密码
+service.json
+# GnuPG 私钥 / 口令（在 /etc/portage/gnupg/）
+gnupg/
+pass
+# SSH 私钥
+id_*
+*.pem
+
+# ===== 缓存与临时文件 =====
+node_modules/
+__pycache__/
+*.pyc
+*.bak
+*.bak.*
+*.log
+.cache/
+
+# ===== 大文件 / 壁纸 =====
+wallpapers/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.zip
+*.tar.gz

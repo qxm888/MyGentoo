@@ -1,0 +1,7 @@
+>=media-plugins/alsa-plugins-1.2.12 pulseaudio
+media-gfx/imv gif webp svg tiff bmp
+xfce-base/tumbler jpeg
+media-plugins/gst-plugins-meta flac mp3 ogg opus vorbis wavpack aac
+media-video/pipewire sound-server dbus pulseaudio pipewire-alsa
+media-video/wireplumber systemd
+media-video/ffmpeg vaapi

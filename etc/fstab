@@ -1,0 +1,33 @@
+# /dev/nvme0n1p2 LABEL=MyLinux
+UUID=0482c542-df05-4855-8a4e-b1de6514e9f2	/         	btrfs     	rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvol=/@gentoo	0 0
+
+# /dev/nvme0n1p1
+UUID=3D0B-24D7      	/efi      	vfat      	rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro	0 2
+
+# /dev/nvme0n1p2 LABEL=MyLinux
+UUID=0482c542-df05-4855-8a4e-b1de6514e9f2	/home     	btrfs     	rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvol=/@home	0 0
+
+# Swap
+UUID=0482c542-df05-4855-8a4e-b1de6514e9f2  /swap  btrfs  rw,relatime,compress=no,subvol=/@swap  0 0
+/swap/swapfile      	none      	swap      	defaults  	0 0
+
+# sda1 Data3T (ext4)
+UUID=7b80c0cd-7c2b-4697-9cd2-ce0024ddf7a1  /mnt/Data3T  ext4   defaults,nofail,x-systemd.device-timeout=10  0 2
+
+# sdb1 Data (ntfs3)
+UUID=E28038D48038B0C1  /mnt/Data  ntfs3  uid=1000,gid=1000,umask=022,nofail,x-systemd.device-timeout=10  0 0
+
+# /dev/nvme0n1p2 LABEL=MyLinux (snapshots subvol)
+UUID=0482c542-df05-4855-8a4e-b1de6514e9f2  /.snapshots  btrfs  rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvol=/@.snapshots  0 0
+
+# /dev/nvme0n1p2 LABEL=MyLinux (@MyAgent 共享子卷)
+UUID=0482c542-df05-4855-8a4e-b1de6514e9f2  /home/luckyhit/MyAgent  btrfs  rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvol=/@MyAgent  0 0
+
+# /dev/nvme0n1p2 (@opencode 共享数据目录)
+UUID=0482c542-df05-4855-8a4e-b1de6514e9f2  /home/luckyhit/.local/share/opencode  btrfs  rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvol=/@opencode  0 0
+
+# /dev/nvme0n1p2 (@work 跨系统共享工作目录)
+UUID=0482c542-df05-4855-8a4e-b1de6514e9f2  /srv/work  btrfs  rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvol=/@work  0 0
+
+# /dev/nvme0n1p2 LABEL=MyLinux
+UUID=0482c542-df05-4855-8a4e-b1de6514e9f2	/mnt/btrfs         	btrfs     	rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvol=/	0 0

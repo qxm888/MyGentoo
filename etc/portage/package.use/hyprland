@@ -1,0 +1,12 @@
+media-libs/freetype harfbuzz
+media-libs/libcanberra alsa
+x11-drivers/nvidia-drivers X wayland tools modules -dist-kernel
+www-client/firefox dbus
+dev-libs/libdbusmenu gtk3
+gui-libs/gtk4-layer-shell vala introspection
+dev-qt/qtbase opengl
+app-crypt/gcr gtk
+sys-apps/systemd policykit
+app-text/xmlto text
+dev-qt/qtbase opengl
+dev-qt/qtdeclarative opengl

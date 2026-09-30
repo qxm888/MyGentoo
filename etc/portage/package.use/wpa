@@ -1,0 +1,14 @@
+>=net-wireless/wpa_supplicant-2.11-r4 dbus
+# required by dev-qt/qttools-6.10.3::gentoo[widgets]
+# required by kde-frameworks/karchive-6.25.0::gentoo
+# required by kde-frameworks/kdoctools-6.25.0::gentoo
+# required by kde-apps/kate-common-26.04.1::gentoo[handbook]
+# required by kde-apps/kate-26.04.1::gentoo
+# required by kate (argument)
+>=dev-qt/qtbase-6.10.3-r1 opengl
+# required by www-client/firefox-140.11.0::gentoo[system-libvpx]
+# required by firefox (argument)
+>=media-libs/libvpx-1.16.0 postproc
+# required by app-i18n/fcitx-configtool-5.1.12-r1::gentoo
+# required by app-i18n/fcitx-configtool (argument)
+>=app-i18n/fcitx-qt-5.1.12 qt6

@@ -1,0 +1,7 @@
+# This file contains fish universal variable definitions.
+# VERSION: 3.0
+SETUVAR --export OPENAI_API_KEY:local
+SETUVAR --export OPENAI_BASE_URL:http\x3a//127\x2e0\x2e0\x2e1\x3a8080/v1
+SETUVAR __fish_initialized:4300
+SETUVAR fish_greeting:
+SETUVAR fish_user_paths:/home/luckyhit/\x2eopencode/bin

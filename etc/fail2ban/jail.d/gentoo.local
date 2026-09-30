@@ -1,0 +1,9 @@
+[DEFAULT]
+# frp 隧道过来的连接源是 127.0.0.1，必须放行本机
+ignoreip = 127.0.0.1/8 ::1
+backend = systemd
+banaction = nftables-multiport
+banaction_allports = nftables-allports
+
+[sshd]
+enabled = true
