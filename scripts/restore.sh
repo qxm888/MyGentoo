@@ -100,7 +100,7 @@ cp -a "$REPO"/etc/kernels/kernel-config-* /etc/kernels/ 2>/dev/null || true
 # polkit 规则（让 pkexec 弹窗改为验证"你自己的"密码）
 if compgen -G "$REPO/etc/polkit-1/rules.d/*.rules" >/dev/null 2>&1; then
     mkdir -p /etc/polkit-1/rules.d
-    cp -a "$REPO"/etc/polkit-1/rules.d/*.rules /etc/polkit-1/rules.d/
+    install -o root -g root -m 644 "$REPO"/etc/polkit-1/rules.d/*.rules /etc/polkit-1/rules.d/
     echo "  polkit 规则已恢复（polkitd 会自动重载）"
 fi
 echo "  /etc 恢复完成"

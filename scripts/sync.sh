@@ -146,7 +146,7 @@ K=$(ls -1 /etc/kernels/kernel-config-* 2>/dev/null | tail -1 || true)
 # 它让 pkexec 弹窗问"你自己的"密码而不是 root 的。改完仓库里的规则，跑一次同步即可生效。
 if compgen -G "$REPO/etc/polkit-1/rules.d/*.rules" >/dev/null 2>&1; then
     mkdir -p /etc/polkit-1/rules.d
-    cp -a "$REPO"/etc/polkit-1/rules.d/*.rules /etc/polkit-1/rules.d/ 2>/dev/null || true
+    install -o root -g root -m 644 "$REPO"/etc/polkit-1/rules.d/*.rules /etc/polkit-1/rules.d/ 2>/dev/null || true
     ( cd "$REPO/etc/polkit-1/rules.d" && sha256sum *.rules ) > "$REPO/etc/polkit-1/rules.d/.installed.sha256" 2>/dev/null || true
     chown --reference="$REPO" "$REPO/etc/polkit-1/rules.d/.installed.sha256" 2>/dev/null || true
 fi

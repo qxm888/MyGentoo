@@ -74,12 +74,17 @@ bash scripts/sync.sh --no-push        # 只提交，不推送
 
 ```
 etc/polkit-1/rules.d/49-pkexec-auth-self.rules
-  → wheel 组活跃用户走 pkexec 时用 AUTH_SELF_KEEP（验证自己 + 5 分钟缓存）
+  → wheel 组活跃用户走 pkexec 时用 AUTH_SELF_KEEP（验证的是你自己，不再是 root）
 ```
 
+- 实测身份变化：`authenticated as unix-user:root` → **`unix-user:luckyhit`** ✅
+- ⚠️ 实测澄清：`_KEEP` 在 pkexec 场景**不提供跨调用缓存** —— polkit 的临时授权按「主体」记，
+  而 pkexec 每次都是新进程（日志写 `for unix-process:<pid>`），所以连着跑两次 pkexec 仍会弹两次。
+  想要「输一次管几分钟」，用 `sudo`（按 tty 缓存 5 分钟）更合适。
+- 想彻底不弹框可把规则改成 `polkit.Result.YES`（**降低安全性**，任何活跃 wheel 用户无需密码即可提权，慎用）
 - `scripts/sync.sh` 会把这条规则**部署到** `/etc/polkit-1/rules.d/`（唯一一个「仓库 → 系统」方向的配置）
 - `scripts/restore.sh` 恢复时也会装上（polkitd 自动热重载，无需重启服务）
-- 有终端时脚本优先用 `sudo`（问你自己的密码），无终端才退到 pkexec 图形弹窗
+- 有终端时脚本优先用 `sudo`（问你自己的密码，有 5 分钟缓存），无终端才退到 pkexec 图形弹窗
 
 ### 分开执行（只想同步/只想恢复）
 

@@ -6,20 +6,30 @@
 //   pkexec 使用的动作 org.freedesktop.policykit.exec 默认策略是 auth_admin
 //   （见 /usr/share/polkit-1/actions/org.freedesktop.policykit.policy:56-60），
 //   含义是「认证一个管理员身份」。管理员身份 = root + wheel 组成员，
-//   而图形代理（hyprpolkitagent）会选中 root 身份，
-//   于是每次都弹 root 密码框（日志实证：polkitd "successfully authenticated
-//   as unix-user:root"，且是 ONE-SHOT 无缓存，所以每次都要输）。
+//   而图形代理（hyprpolkitagent）会选中 root 身份 → 弹窗要 root 的密码。
 //
-// 注意：这跟 sudo 完全不同 —— sudo 验证的是「发起者本人」，
+//   注意：这跟 sudo 完全不同 —— sudo 验证的是「发起者本人」，
 //   所以终端里 sudo 问的是 luckyhit 的密码，pkexec 问的是 root 的。
 //
-// 本规则：wheel 组的活跃会话用户走 pkexec 时，改为 AUTH_SELF_KEEP
+// 本规则：wheel 组的活跃会话用户走 pkexec 时，返回 AUTH_SELF_KEEP
 //   * AUTH_SELF → 认证对象变成当前会话用户（自己）
-//   * _KEEP     → 授权缓存 5 分钟，连续操作不用重复输入
-// 效果与 sudo 默认行为等价（wheel 成员用自己的密码提权）。
+//   * _KEEP     → 授权记为 TEMPORARY 而不是 ONE-SHOT
+//
+// 实测记录（2026-10-01，`pkexec /usr/bin/id -un`）：
+//   改之前：polkitd … authenticated as unix-user:root       … ONE-SHOT authorization
+//   改之后：polkitd … authenticated as unix-user:luckyhit    … TEMPORARY authorization
+//           （输出仍然是 root，说明提权照常，只是"验证的是谁"变了）
+//
+// ⚠️ 关于 _KEEP 的真实效果（实测澄清，别被文档误导）：
+//   polkit 的临时授权是按「主体」记的，而 pkexec 每次调用都是**全新的进程**
+//   （日志里写的是 `for unix-process:<pid>`），所以 _KEEP 在 pkexec 场景下
+//   **不会**跨调用复用 —— 连着跑两次 pkexec 依然会弹两次框（已实测）。
+//   _KEEP 的价值在于同一进程内多次 CheckAuthorization 不必重复认证。
+//   想要"输一次管几分钟"：用 sudo（按 tty 缓存，默认 5 分钟）更合适，
+//   或者把本规则改成 polkit.Result.YES（完全不弹框，属于降低安全性，慎用）。
 //
 // 安装位置：/etc/polkit-1/rules.d/49-pkexec-auth-self.rules
-// 生效方式：polkitd 会自动监听该目录，无需重启服务
+// 生效方式：polkitd 会自动监听该目录并热重载，无需重启服务
 // 回滚方式：删除本文件即可恢复默认（弹 root 密码）
 // ---------------------------------------------------------------------------
 
