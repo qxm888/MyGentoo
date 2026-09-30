@@ -108,6 +108,34 @@ git config core.hooksPath .githooks
 确认真无害时可临时绕过：`git commit --no-verify`。
 单独手动扫描：`bash scripts/secretscan.sh`（`--staged` 只扫暂存区、`--quiet` 只在命中时输出）。
 
+## Gentoo 升级内核后：同步 Arch 的 GRUB 菜单 ⭐
+
+本机由 **Arch 的 GRUB 统一引导**（`grubx64.efi` 的 prefix 被编译成 `(,gpt2)/@arch/boot/grub`），
+而 Gentoo 的菜单项写在 Arch 的 `grub.cfg` 里、引用了带版本号的文件名
+（`vmlinuz-7.2.8-gentoo-x86_64` / `initramfs-….img`）。所以每次升级内核都要同步：
+
+```bash
+bash scripts/grub-gentoo-sync.sh             # 检测并更新（自动 sudo/pkexec 提权）
+bash scripts/grub-gentoo-sync.sh --status    # 只看两边版本是否一致
+bash scripts/grub-gentoo-sync.sh -n          # 只看会写入什么，不改文件
+```
+
+它维护一个带 `>>> GENTOO AUTO <<<` 标记的块，**同时写两处**：
+
+| 位置 | 作用 |
+|:--|:--|
+| `@arch/boot/grub/grub.cfg` | 立即生效 |
+| `@arch/etc/grub.d/40_custom` | **关键**：原来这份菜单项是手工塞进 grub.cfg 的，在 Arch 上跑一次 `grub-mkconfig` 就会丢；写进 `40_custom` 后再也不会丢 |
+
+设计要点：
+- 块内用 `set gentoo_ver=…` 变量，以后只改这一行；路径用变量拼接
+- root UUID / 子卷 / Intel-AMD 微码 全部**自动推导**，不写死
+- 更新前备份（保留最近 5 份）；写入用「临时文件 + 原子替换」并保留原属主权限；花括号配平 + 标记唯一性校验
+- 检测到根目录下找不到对应 vmlinuz/initramfs 就中止，绝不写坏配置
+
+> ⚠️ 注意 `findmnt -no SOURCE /` 在 btrfs 子卷上返回的是 `/dev/nvme0n1p2[/@gentoo]`，
+> 喂给 `blkid` 会失败 —— 脚本里已剥离 `[...]` 后缀，UUID 改从 `findmnt -no UUID` 取。
+
 ## 关于公开
 
 本仓库**刻意保持公开**，方便别人直接拿去参考 / 复用（同机双系统的另一份在 Arch 侧）。

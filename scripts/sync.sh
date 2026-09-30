@@ -57,7 +57,7 @@ say "布局=${LAYOUT}  源家目录=${SRC_HOME}  仓库=${REPO}  主机=$(hostna
 [[ $DRY -eq 1 ]] && warn "DRY-RUN：只预览，不改文件、不提交、不推送"
 
 # 仓库自带工具，绝不能被 --delete 干掉
-KEEP_TOOLS=(--exclude=sync.sh --exclude=save.sh --exclude=restore.sh --exclude=auto-snapshots.sh --exclude=secretscan.sh)
+KEEP_TOOLS=(--exclude=sync.sh --exclude=save.sh --exclude=restore.sh --exclude=auto-snapshots.sh --exclude=secretscan.sh --exclude=grub-gentoo-sync.sh)
 RSYNC_OPTS=(-a --delete --exclude='*.bak*' --exclude='*.bak.*' "${KEEP_TOOLS[@]}")
 [[ $DRY -eq 1 ]] && RSYNC_OPTS+=(--dry-run -i)
 CP_OPTS=(-a)          # dry-run 时根本不走复制分支，见 sync_file
