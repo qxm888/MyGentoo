@@ -1,0 +1,32 @@
+// 49-pkexec-auth-self.rules
+// ---------------------------------------------------------------------------
+// 让 pkexec 的弹窗验证「当前会话用户」自己的密码，而不是 root 的密码。
+//
+// 背景（2026-10-01 排查）：
+//   pkexec 使用的动作 org.freedesktop.policykit.exec 默认策略是 auth_admin
+//   （见 /usr/share/polkit-1/actions/org.freedesktop.policykit.policy:56-60），
+//   含义是「认证一个管理员身份」。管理员身份 = root + wheel 组成员，
+//   而图形代理（hyprpolkitagent）会选中 root 身份，
+//   于是每次都弹 root 密码框（日志实证：polkitd "successfully authenticated
+//   as unix-user:root"，且是 ONE-SHOT 无缓存，所以每次都要输）。
+//
+// 注意：这跟 sudo 完全不同 —— sudo 验证的是「发起者本人」，
+//   所以终端里 sudo 问的是 luckyhit 的密码，pkexec 问的是 root 的。
+//
+// 本规则：wheel 组的活跃会话用户走 pkexec 时，改为 AUTH_SELF_KEEP
+//   * AUTH_SELF → 认证对象变成当前会话用户（自己）
+//   * _KEEP     → 授权缓存 5 分钟，连续操作不用重复输入
+// 效果与 sudo 默认行为等价（wheel 成员用自己的密码提权）。
+//
+// 安装位置：/etc/polkit-1/rules.d/49-pkexec-auth-self.rules
+// 生效方式：polkitd 会自动监听该目录，无需重启服务
+// 回滚方式：删除本文件即可恢复默认（弹 root 密码）
+// ---------------------------------------------------------------------------
+
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.policykit.exec" &&
+        subject.isInGroup("wheel") &&
+        subject.active) {
+        return polkit.Result.AUTH_SELF_KEEP;
+    }
+});

@@ -40,6 +40,7 @@
 | `etc/sysctl.d/99-hardening.conf` | 内核安全加固参数 |
 | `etc/pam.d/login` | 含 `pam_gnome_keyring.so`（开机自动解锁密钥环） |
 | `etc/systemd/system/getty@.service.d/10-clear.conf` | 登录前清屏（配合 `/etc/issue` 欢迎页） |
+| `etc/polkit-1/rules.d/49-pkexec-auth-self.rules` | **让 pkexec 弹窗验证你自己的密码**（而不是 root 的）；方向是「仓库 → 系统」 |
 | `etc/issue` | 欢迎横幅 |
 | `etc/fstab` | 挂载表（btrfs 子卷：@gentoo/@home/@MyAgent/@opencode/@work/@.snapshots） |
 | `etc/kernels/kernel-config-*` | 内核配置（genkernel 用） |
@@ -62,6 +63,23 @@ bash scripts/sync.sh --no-push        # 只提交，不推送
 - 误报可写进仓库根目录的 `.secretscan-ignore`（每行一个 `grep -E` 正则）。
 - 源家目录默认从仓库位置推导（`<home>/opencode/<repo>` → `<home>`），
   所以就算在 Gentoo 上跑 Arch 仓库的脚本，也不会把两边的配置搞混；可用 `-H` 覆盖。
+
+#### 关于密码框（pkexec vs sudo）
+
+`pkexec` 走 polkit，默认策略（`auth_admin`）要求认证一个「管理员身份」= root 或 wheel 组成员，
+图形代理会选中 **root**，所以弹窗要的是 **root 的密码**（日志：`authenticated as unix-user:root`）。
+而 `sudo` 验证的是「发起者本人」，问的是你自己的密码。
+
+本仓库带了一条 polkit 规则解决这个：
+
+```
+etc/polkit-1/rules.d/49-pkexec-auth-self.rules
+  → wheel 组活跃用户走 pkexec 时用 AUTH_SELF_KEEP（验证自己 + 5 分钟缓存）
+```
+
+- `scripts/sync.sh` 会把这条规则**部署到** `/etc/polkit-1/rules.d/`（唯一一个「仓库 → 系统」方向的配置）
+- `scripts/restore.sh` 恢复时也会装上（polkitd 自动热重载，无需重启服务）
+- 有终端时脚本优先用 `sudo`（问你自己的密码），无终端才退到 pkexec 图形弹窗
 
 ### 分开执行（只想同步/只想恢复）
 

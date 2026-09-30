@@ -86,6 +86,7 @@ cp -a /etc/ufw/user.rules "$REPO/etc/ufw/"
 cp -a /etc/pam.d/login "$REPO/etc/pam.d/"
 cp -a /etc/systemd/system/getty@.service.d/10-clear.conf "$REPO/etc/systemd/system/getty@.service.d/"
 if [ -n "$KERNEL_SRC" ]; then cp -a "$KERNEL_SRC" "$REPO/etc/kernels/$(basename "$KERNEL_SRC")"; fi
+# 注：etc/polkit-1/rules.d/ 是「仓库 → 系统」的部署方向（见 sync.sh），save.sh 不动它
 EOS
 ok "etc/"
 

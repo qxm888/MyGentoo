@@ -110,10 +110,24 @@ if [[ $LAYOUT == gentoo && $DRY -eq 0 ]]; then
     K=$(ls -1 /etc/kernels/kernel-config-* 2>/dev/null | tail -1 || true)
     [[ -n $K ]] && { cmp -s "$K" "$REPO/etc/kernels/$(basename "$K")" 2>/dev/null || NEED_ROOT=1; }
 
+    # polkit 规则目录（750 root:polkitd，普通用户读不到）→ 比对"仓库里记录的已安装校验和"
+    PR="$REPO/etc/polkit-1/rules.d"
+    if compgen -G "$PR/*.rules" >/dev/null 2>&1; then
+        want=$(cd "$PR" && sha256sum *.rules 2>/dev/null)
+        have=$(cat "$PR/.installed.sha256" 2>/dev/null || true)
+        [[ "$want" == "$have" ]] || NEED_ROOT=1
+    fi
+
     if [[ $NEED_ROOT -eq 0 ]]; then
         ok "etc/ 无变化（跳过，不打扰 root）"
     else
-    as_root() { if [[ $EUID -eq 0 ]]; then "$@"; elif sudo -n true 2>/dev/null; then sudo "$@"; else pkexec "$@"; fi; }
+    # 有终端时优先 sudo（问"你自己的"密码）；无终端才退到 pkexec 图形弹窗
+    as_root() {
+        if [[ $EUID -eq 0 ]]; then "$@"
+        elif [[ -t 0 ]]; then sudo "$@"
+        elif sudo -n true 2>/dev/null; then sudo "$@"
+        else pkexec "$@"; fi
+    }
     if as_root bash -s -- "$REPO" <<'EOS'; then ok "etc/ 已更新"
 set -e
 REPO="$1"
@@ -128,6 +142,14 @@ cp -a /etc/pam.d/login                           "$REPO/etc/pam.d/"
 cp -a /etc/systemd/system/getty@.service.d/10-clear.conf "$REPO/etc/systemd/system/getty@.service.d/"
 K=$(ls -1 /etc/kernels/kernel-config-* 2>/dev/null | tail -1 || true)
 [ -n "$K" ] && cp -a "$K" "$REPO/etc/kernels/$(basename "$K")"
+# polkit 规则：特殊！方向是「仓库 → 系统」（部署），因为这条规则是在仓库里维护的，
+# 它让 pkexec 弹窗问"你自己的"密码而不是 root 的。改完仓库里的规则，跑一次同步即可生效。
+if compgen -G "$REPO/etc/polkit-1/rules.d/*.rules" >/dev/null 2>&1; then
+    mkdir -p /etc/polkit-1/rules.d
+    cp -a "$REPO"/etc/polkit-1/rules.d/*.rules /etc/polkit-1/rules.d/ 2>/dev/null || true
+    ( cd "$REPO/etc/polkit-1/rules.d" && sha256sum *.rules ) > "$REPO/etc/polkit-1/rules.d/.installed.sha256" 2>/dev/null || true
+    chown --reference="$REPO" "$REPO/etc/polkit-1/rules.d/.installed.sha256" 2>/dev/null || true
+fi
 EOS
     else warn "/etc 同步失败（跳过，不影响后续）"; fi
     fi

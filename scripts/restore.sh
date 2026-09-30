@@ -97,6 +97,12 @@ done
 [ -f "$REPO/etc/pam.d/login" ] && cp -a "$REPO/etc/pam.d/login" /etc/pam.d/login
 [ -f "$REPO/etc/systemd/system/getty@.service.d/10-clear.conf" ] && cp -a "$REPO/etc/systemd/system/getty@.service.d/10-clear.conf" /etc/systemd/system/getty@.service.d/
 cp -a "$REPO"/etc/kernels/kernel-config-* /etc/kernels/ 2>/dev/null || true
+# polkit 规则（让 pkexec 弹窗改为验证"你自己的"密码）
+if compgen -G "$REPO/etc/polkit-1/rules.d/*.rules" >/dev/null 2>&1; then
+    mkdir -p /etc/polkit-1/rules.d
+    cp -a "$REPO"/etc/polkit-1/rules.d/*.rules /etc/polkit-1/rules.d/
+    echo "  polkit 规则已恢复（polkitd 会自动重载）"
+fi
 echo "  /etc 恢复完成"
 EOS
     ok "系统配置已恢复（原文件带 .bak-$TS）"
